@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - UrlPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .url-card {
+            border: none;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .url-card:hover {
+            border-left-color: #667eea;
+            transform: translateX(5px);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 2rem 0;
+        }
+        
+        .notification-item {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #28a745;
+            background: #f8f9fa;
+        }
+        
+        .btn-action {
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            margin: 0 0.2rem;
+        }
+        .short-url {
+            cursor: pointer;
+            color: #007bff;
+        }
+        .short-url:hover {
+            text-decoration: underline;
+        }
+        .modal-content {
+            border-radius: 15px;
+        }
+        .modal-header {
+            border-bottom: none;
+        }
+        .modal-footer {
+            border-top: none;
+        }
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+        }
+        .btn-close:hover {
+            color: #dc3545;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 200px;
+        }
+        .toast-success {
+            background-color: #28a745;
+            color: white;
+        }
+    
+        .toast-error {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .toast-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .toast-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        .navbar-brand i {
+            margin-left: 0.5rem;
+        }
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .card-header {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .card-header i {
+            margin-left: 0.5rem;
+        }
+        .badge {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.7rem;
+            border-radius: 12px;
+        }
+        .badge i {
+            margin-left: 0.3rem;
+        }
+        .progress {
+            height: 6px;
+            border-radius: 3px;
+        }
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+        .fa-clock {
+            color: #6c757d;
+        }
+
+        @media (max-width: 768px) {
+            .stat-card {
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stat-card {
+                padding: 1.5rem;
+            }
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+
+        /* Scrollbar for recent URLs */
+        .recent-urls::-webkit-scrollbar {
+            width: 8px;
+        }
+        .recent-urls::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+        .recent-urls::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chart-container {
+            height: 350px;
+        }
+        .chart-container canvas {
+            max-height: 100%;
+        }
+        .btn:focus {
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        .btn-outline-primary {
+            color: #667eea;
+            border-color: #667eea;
+        }
+        .btn-outline-primary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-outline-success {
+            color: #38a169;
+            border-color: #38a169;
+        }
+        .btn-outline-success:hover {
+            background: #38a169;
+            color: white;
+        }
+        .btn-outline-danger {
+            color: #e53e3e;
+            border-color: #e53e3e;
+        }
+        .btn-outline-danger:hover {
+            background: #e53e3e;
+            color: white;
+        }
+        .btn-outline-secondary {
+            color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-outline-secondary:hover {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-outline-info {
+            color: #3182ce;
+            border-color: #3182ce;
+        }
+        .btn-outline-info:hover {
+            background: #3182ce;
+            color: white;
+        }
+
+        .btn-outline-warning {
+            color: #d69e2e;
+            border-color: #d69e2e;
+        }
+        .btn-outline-warning:hover {
+            background: #d69e2e;
+            color: white;
+        }
+
+        .modal-header .btn-close {
+            font-size: 1.2rem;
+        }
+
+        .modal-body img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+        .modal-body .btn {
+            margin-top: 1rem;
+        }
+        .toast {
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+        @keyframes fadein {
+            from {top: 0; opacity: 0;}
+            to {top: 20px; opacity: 1;}
+        }
+        @keyframes fadeout {
+            from {top: 20px; opacity: 1;}
+            to {top: 0; opacity: 0;}
+        }
+
+        .fas {
+            vertical-align: middle;
+        }
+        .fa-sign-out-alt {
+            margin-left: 0.3rem;
+        }
+        .fa-user {
+            margin-left: 0.3rem;
+        }
+        .fa-chart-line {
+            color: #667eea;
+        }
+        .fa-chart-bar {
+            color: #3182ce;
+        }
+
+    .fa-qrcode
+     {
+            color: #38a169;
+        }
+      .fa-trash {
+            color: #e53e3e;
+        }
+        .fa-plus {
+            color: #38a169;
+        }
+        .fa-download {
+            color: #3182ce;
+        }
+    .fa-file-pdf {
+            color: #e53e3e;
+        }
+        .fa-key {
+            color: #d69e2e;
+        }
+        .fa-bell {
+            color: #ff9800;
+        }
+        .fa-bolt {
+            color: #ffc107;
+        }
+        .fa-mouse-pointer {
+            color: #ff5722;
+        }        
+     .fa-check-circle {
+            color: #28a745;
+        }
+        .fa-clock {
+            color: #6c757d;
+        }
+        .fa-link {
+            color: #007bff;
+        }
+        .fa-rocket {
+                color: #ff5722;
+            }
+        .fa-lock {
+            color: #ffc107;
+        }
+        .dashboard-card:hover {
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+ 
+        .stat-card {
+
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        }
+        .notification-item {
+            border-left-color: #ff9800;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: box-shadow 0.3s ease;
+        }
+        .notification-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .url-card {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .url-card:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .btn-action {
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .btn-action:hover {
+            opacity: 0.9;
+        }
+        .chart-container {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            padding: 1rem;
+            background: white;
+        }
+        .modal-content {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-body img {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .toast {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .toast-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .toast-error {
+            background-color: #dc3545;
+            color: white;
+        }
+        .toast-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .toast-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #333;
+        }
+        .navbar-brand i {
+            margin-left: 0.5rem;
+            color: #ff5722;
+        }
+        .navbar a {
+            color: #333;
+            transition: color 0.3s ease;
+        }
+        .navbar a:hover {
+            color: #667eea;
+        }
+        .card-header {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        .card-header i {
+            margin-left: 0.5rem;
+            color: #667eea;
+        }
+        .badge {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.7rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .badge i {
+            margin-left: 0.3rem;
+        }
+
+        .progress {
+            height: 6px;
+            border-radius: 3px;
+            background: #e9ecef;
+        }
+        .progress-bar {
+            transition: width 0.6s ease;
+            background: #667eea;
+        }
+        .fa-clock {
+            color: #6c757d;
+        }
+        @media (max-width: 768px) {
+            .stat-card {
+                margin-bottom: 1.5rem;
+            }
+        }
+        @media (max-width: 576px) {
+            .stat-card {
+                padding: 1.5rem;
+            }
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+        .chart-container {
+            height: 350px;
+        }
+        .chart-container canvas {
+            max-height: 100%;
+        }
+        .btn:focus {
+            box-shadow: none;
+        }
+        .btn-primary {
+            background: #667eea;
+            border: none;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: #5a67d8;
+            box-shadow: 0 8px 20px rgba(90, 103, 216, 0.4);
+        }
+        .btn-outline-primary {
+            color: #667eea;
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-outline-primary:hover {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-outline-success {
+            color: #38a169;
+            border-color: #38a169;
+            box-shadow: 0 5px 15px rgba(56, 161, 105, 0.2);
+            transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-outline-success:hover {
+            background: #38a169;
+            color: white;
+            box-shadow: 0 8px 20px rgba(56, 161, 105, 0.4);
+        }
+        .btn-outline-danger {
+            color: #e53e3e;
+            border-color: #e53e3e;
+            box-shadow: 0 5px 15px rgba(229, 62, 62, 0.2);
+            transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-outline-danger:hover {
+            background: #e53e3e;
+            color: white;
+            box-shadow: 0 8px 20px rgba(229, 62, 62, 0.4);
+        }
+        .btn-outline-secondary {
+            color: #6c757d;
+            border-color: #6c757d;
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.2);
+            transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-outline-secondary:hover {
+            background: #6c757d;
+            color: white;
+            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4);
+        }
+        .btn-outline-info {
+            color: #3182ce;
+            border-color: #3182ce;
+            box-shadow: 0 5px 15px rgba(49, 130, 206, 0.2);
+            transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-outline-info:hover {
+            background: #3182ce;
+            color: white;
+            box-shadow: 0 8px 20px rgba(49, 130, 206, 0.4);
+        }
+        .btn-outline-warning {
+            color: #d69e2e;
+            border-color: #d69e2e;
+            box-shadow: 0 5px 15px rgba(214, 158, 46, 0.2);
+            transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-outline-warning:hover {
+            background: #d69e2e;
+            color: white;
+            box-shadow: 0 8px 20px rgba(214, 158, 46, 0.4);
+        }
+        .modal-header .btn-close {
+            font-size: 1.2rem;
+            color: #333;
+            opacity: 0.7;
+            transition: color 0.3s ease, opacity 0.3s ease;
+        }
+        .modal-header .btn-close:hover {
+            color: #dc3545;
+            opacity: 1;
+        }
+        .modal-body img {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .toast {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .toast-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .toast-error {
+            background-color: #dc3545;
+            color: white;
+        }
+        .toast-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .toast-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+        .toast:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #333;
+            text-shadow: 0 2px 5px rgba(102, 126, 234, 0.3);
+        
+        }
+        .navbar-brand i {
+            margin-left: 0.5rem;
+            color: #ff5722;
+        }
+        .navbar a {
+            color: #333;
+            transition: color 0.3s ease;
+        }
+        .navbar a:hover {
+            color: #667eea;
+        }
+        .card-header {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        .card-header i {
+            margin-left: 0.5rem;
+            color: #667eea;
+        }
+        .badge {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.7rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .badge i {
+            margin-left: 0.3rem;
+        }       
+
+.card-body {
+            background: white;
+            padding: 1.5rem;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+
+
+
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark" style="background: rgba(0,0,0,0.1);">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'index' %}">
+                <i class="fas fa-link"></i> UrlPro
+            </a>
+            <div>
+                <span class="text-white me-3">
+                    <i class="fas fa-user"></i> {{ user.username }}
+                </span>
+                <a href="{% url 'logout' %}" class="btn btn-outline-light">
+                    <i class="fas fa-sign-out-alt"></i> خروج
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Stats Cards -->
+        <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card">
+                    <span class="stat-number">{{ stats.total_urls }}</span>
+                    <i class="fas fa-link fa-2x mb-2"></i>
+                    <div>إجمالي الروابط</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card">
+                    <span class="stat-number">{{ stats.total_clicks }}</span>
+                    <i class="fas fa-mouse-pointer fa-2x mb-2"></i>
+                    <div>إجمالي النقرات</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card">
+                    <span class="stat-number">{{ stats.active_urls }}</span>
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <div>الروابط النشطة</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card">
+                    <span class="stat-number">{{ stats.expired_urls }}</span>
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <div>الروابط المنتهية</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Charts -->
+            <div class="col-lg-8">
+                <div class="dashboard-card">
+                    <div class="card-header bg-transparent">
+                        <h5><i class="fas fa-chart-line"></i> إحصائيات النقرات (آخر 30 يوم)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="clicksChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent URLs -->
+                <div class="dashboard-card">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-history"></i> الروابط الأخيرة</h5>
+                        <a href="{% url 'advanced_shorten' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> رابط جديد
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% for url in recent_urls %}
+                        <div class="card url-card">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <h6 class="mb-1">{{ url.title|default:url.original_url|truncatechars:40 }}</h6>
+                                        <small class="text-muted">{{ url.original_url|truncatechars:50 }}</small>
+                                        {% if url.category %}
+                                            <span class="badge" style="background-color: '{{ url.category.color|default:'#6c757d' }}';">
+                                                {{ url.category.icon }} {{ url.category.name }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <code class="short-url" onclick="copyToClipboard('{{ url.get_short_url }}')">
+                                            {{ url.get_short_url }}
+                                        </code>
+                                    </div>
+                                    <div class="col-md-3 text-end">
+                                        <div class="mb-2">
+                                            <span class="badge bg-success">{{ url.click_count }} نقرة</span>
+                                            {% if url.is_expired %}
+                                                <span class="badge bg-danger">منتهي</span>
+                                            {% endif %}
+                                            {% if url.password %}
+                                                <span class="badge bg-warning"><i class="fas fa-lock"></i></span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'url_analytics' url.short_code %}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </a>
+                                            <button onclick="showQRCode('{{ url.qr_code }}')" 
+                                                    class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-qrcode"></i>
+                                            </button>
+                                            <button onclick="deleteUrl('{{ url.id }}')" 
+                                                    class="btn btn-outline-danger btn-sm">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications & Quick Actions -->
+            <div class="col-lg-4">
+                <!-- Notifications -->
+                <div class="dashboard-card">
+                    <div class="card-header bg-transparent">
+                        <h5><i class="fas fa-bell"></i> الإشعارات</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for notification in notifications %}
+                        <div class="notification-item">
+                            <strong>{{ notification.title }}</strong>
+                            <p class="mb-1">{{ notification.message }}</p>
+                            <small class="text-muted">{{ notification.created_at|timesince }}</small>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center">لا توجد إشعارات جديدة</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="dashboard-card">
+                    <div class="card-header bg-transparent">
+                        <h5><i class="fas fa-bolt"></i> إجراءات سريعة</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'advanced_shorten' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> رابط جديد
+                            </a>
+                            <button class="btn btn-success" onclick="bulkExport()">
+                                <i class="fas fa-download"></i> تصدير البيانات
+                            </button>
+                            <button class="btn btn-info" onclick="generateReport()">
+                                <i class="fas fa-file-pdf"></i> تقرير شهري
+                            </button>
+                            <a href="#" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#apiModal">
+                                <i class="fas fa-key"></i> API Key
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal fade" id="qrModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">QR Code</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="qrImage" class="img-fluid" alt="QR Code">
+                    <div class="mt-3">
+                        <button class="btn btn-primary" onclick="downloadQR()">
+                            <i class="fas fa-download"></i> تحميل
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {{ daily_clicks|json_script:"daily-clicks-data" }}
+    <script>
+        // Charts
+        const chartData = JSON.parse(document.getElementById('daily-clicks-data').textContent);
+        
+        const ctx = document.getElementById('clicksChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.map(d => d.date),
+                datasets: [{
+                    label: 'النقرات',
+                    data: chartData.map(d => d.clicks),
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Functions
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('تم نسخ الرابط!', 'success');
+            });
+        }
+
+        function showQRCode(qrCode) {
+            document.getElementById('qrImage').src = 'data:image/png;base64,' + qrCode;
+            new bootstrap.Modal(document.getElementById('qrModal')).show();
+        }
+
+        function deleteUrl(urlId) {
+            if (confirm('هل أنت متأكد من حذف هذا الرابط؟')) {
+                // AJAX call to delete URL
+                fetch(`/api/urls/${urlId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function bulkExport() {
+            window.location.href = '/api/export/csv/';
+        }
+
+        function generateReport() {
+            window.location.href = '/api/report/pdf/';
+        }
+
+        // Make short URLs clickable
+        document.querySelectorAll('.short-url').forEach(el => {
+            el.style.cursor = 'pointer';
+            el.title = 'انقر للنسخ';
+        });
+    </script>
+</body>
+</html>

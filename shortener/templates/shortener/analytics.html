@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحليلات الرابط - UrlPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .analytics-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .metric-card {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin-bottom: 1rem;
+            border-radius: 15px;
+        }
+        
+        .metric-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            padding: 2rem;
+        }
+        
+        .data-table {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .country-flag {
+            width: 20px;
+            height: 15px;
+            margin-left: 8px;
+        }
+        
+        .device-icon {
+            font-size: 1.2rem;
+            margin-left: 8px;
+        }
+        
+        .progress-bar-custom {
+            height: 8px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark" style="background: rgba(0,0,0,0.1);">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-arrow-right"></i> العودة للوحة التحكم
+            </a>
+            <div class="text-white">
+                <i class="fas fa-chart-line"></i> تحليلات متقدمة
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- URL Info -->
+        <div class="analytics-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4>{{ url.title|default:url.original_url|truncatechars:60 }}</h4>
+                        <p class="text-muted mb-1">{{ url.original_url|truncatechars:80 }}</p>
+                        <code>{{ url.get_short_url }}</code>
+                        
+                        <div class="mt-3">
+                            {% if url.category %}
+                                <span class="badge" style="background-color: {{ url.category.color|default_if_none:'#6c757d' }}">
+                                    {{ url.category.icon }} {{ url.category.name }}
+                                </span>
+                            {% endif %}
+                            {% if url.password %}
+                                <span class="badge bg-warning"><i class="fas fa-lock"></i> محمي</span>
+                            {% endif %}
+                            {% if url.expires_at %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-clock"></i> ينتهي {{ url.expires_at|date:"Y-m-d" }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <img src="data:image/png;base64,{{ url.qr_code }}" 
+                             class="img-fluid" style="max-width: 150px;" alt="QR Code">
+                        <br>
+                        <button class="btn btn-outline-primary btn-sm mt-2" onclick="downloadQR()">
+                            <i class="fas fa-download"></i> تحميل QR
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="metric-card">
+                    <span class="metric-number">{{ url.click_count }}</span>
+                    <i class="fas fa-mouse-pointer fa-2x mb-2"></i>
+                    <div>إجمالي النقرات</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="metric-card">
+                    <span class="metric-number">{{ url.unique_clicks }}</span>
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <div>زوار فريدون</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="metric-card">
+                    <span class="metric-number">
+                        {% if url.click_count > 0 %}
+                            {{ url.unique_clicks|floatformat:0 }}%
+                        {% else %}0%{% endif %}
+                    </span>
+                    <i class="fas fa-percentage fa-2x mb-2"></i>
+                    <div>معدل الفرادة</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="metric-card">
+                    <span class="metric-number">{{ url.created_at|timesince }}</span>
+                    <i class="fas fa-calendar fa-2x mb-2"></i>
+                    <div>العمر</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Charts -->
+            <div class="col-lg-8">
+                <!-- Clicks Over Time -->
+                <div class="analytics-card">
+                    <div class="card-header bg-transparent">
+                        <h5><i class="fas fa-chart-line"></i> النقرات عبر الزمن</h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Device Types -->
+                <div class="analytics-card">
+                    <div class="card-header bg-transparent">
+                        <h5><i class="fas fa-mobile-alt"></i> أنواع الأجهزة</h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="deviceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Tables -->
+            <div class="col-lg-4">
+                <!-- Countries -->
+                <div class="analytics-card">
+                    <div class="card-header bg-transparent">
+                        <h6><i class="fas fa-globe"></i> أهم الدول</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="data-table">
+                            {% for country in countries %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <span class="country-flag">🌍</span>
+                                    {{ country.country|default:"غير معروف" }}
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary">{{ country.count }}</span>
+                                    <div class="progress mt-1" style="height: 4px;">
+                                        <div class="progress-bar" style="width: {% widthratio country.count url.click_count 100 %}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Browsers -->
+                <div class="analytics-card">
+                    <div class="card-header bg-transparent">
+                        <h6><i class="fas fa-browser"></i> المتصفحات</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="data-table">
+                            {% for browser in browsers %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <i class="fas fa-browser device-icon"></i>
+                                    {{ browser.browser|default:"غير معروف" }}
+                                </div>
+                                <div>
+                                    <span class="badge bg-success">{{ browser.count }}</span>
+                                    <div class="progress mt-1" style="height: 4px;">
+                                        <div class="progress-bar bg-success" style="width: {% widthratio browser.count url.click_count 100 %}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Clicks -->
+                <div class="analytics-card">
+                    <div class="card-header bg-transparent">
+                        <h6><i class="fas fa-clock"></i> النقرات الأخيرة</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="data-table">
+                            {% for click in analytics %}
+                            <div class="mb-2 p-2" style="background: #f8f9fa; border-radius: 8px;">
+                                <div class="d-flex justify-content-between">
+                                    <small>
+                                        <i class="fas fa-map-marker-alt text-primary"></i>
+                                        {{ click.country|default:"غير معروف" }}
+                                    </small>
+                                    <small class="text-muted">{{ click.clicked_at|timesince }}</small>
+                                </div>
+                                <div class="mt-1">
+                                    <small class="text-muted">
+                                        <i class="fas fa-{{ click.device_type|default:'desktop' }}"></i>
+                                        {{ click.browser|default:"غير معروف" }}
+                                    </small>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted text-center">لا توجد نقرات بعد</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Options -->
+        <div class="analytics-card">
+            <div class="card-body text-center">
+                <h6><i class="fas fa-download"></i> تصدير البيانات</h6>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary" onclick="exportToCSV()">
+                        <i class="fas fa-file-csv"></i> CSV
+                    </button>
+                    <button class="btn btn-outline-success" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                    <button class="btn btn-outline-info" onclick="generateReport()">
+                        <i class="fas fa-chart-bar"></i> تقرير مفصل
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Parse data from Django
+        const dailyData = JSON.parse('{{ daily_data|escapejs }}');
+        const deviceData = JSON.parse('{{ devices|escapejs }}');
+
+        // Time Chart
+        const timeCtx = document.getElementById('timeChart').getContext('2d');
+        new Chart(timeCtx, {
+            type: 'line',
+            data: {
+                labels: dailyData.map(d => d.date),
+                datasets: [{
+                    label: 'النقرات اليومية',
+                    data: dailyData.map(d => d.clicks),
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+
+        // Device Chart
+        const deviceCtx = document.getElementById('deviceChart').getContext('2d');
+        const deviceLabels = deviceData.map(d => {
+            const icons = {
+                'mobile': '📱 موبايل',
+                'desktop': '💻 سطح المكتب', 
+                'tablet': '📱 تابلت'
+            };
+            return icons[d.device_type] || '❓ غير معروف';
+        });
+
+        new Chart(deviceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: deviceLabels,
+                datasets: [{
+                    data: deviceData.map(d => d.count),
+                    backgroundColor: [
+                        '#FF6B6B',
+                        '#4ECDC4', 
+                        '#45B7D1',
+                        '#96CEB4',
+                        '#FFEAA7'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Export functions
+        function exportToCSV() {
+            window.location.href = `/api/analytics/{{ url.short_code }}/export/csv/`;
+        }
+
+        function exportToPDF() {
+            window.location.href = `/api/analytics/{{ url.short_code }}/export/pdf/`;
+        }
+
+        function generateReport() {
+            window.open(`/api/analytics/{{ url.short_code }}/report/`, '_blank');
+        }
+
+        function downloadQR() {
+            const qrImage = document.querySelector('img[alt="QR Code"]');
+            const link = document.createElement('a');
+            link.download = 'qr-code.png';
+            link.href = qrImage.src;
+            link.click();
+        }
+
+        // Real-time updates (optional)
+        setInterval(function() {
+            fetch(`/api/analytics/{{ url.short_code }}/live/`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update metrics in real-time
+                    document.querySelector('.metric-number').textContent = data.total_clicks;
+                });
+        }, 30000); // Update every 30 seconds
+    </script>
+</body>
+</html>
