@@ -445,3 +445,63 @@ def logout(request):
     auth_logout(request)
     messages.info(request, 'تم تسجيل الخروج بنجاح')
     return redirect('index')
+
+def mark_notification_read(request, notification_id):
+    """وضع علامة على الإشعار كمقروء"""
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.is_read = True
+    notification.save()
+    return redirect('dashboard')
+# urlshortener/settings.py
+
+def get_device_type(user_agent):
+    if user_agent.is_mobile:
+        return 'mobile'
+    elif user_agent.is_tablet:
+        return 'tablet'
+    elif user_agent.is_pc:
+        return 'desktop'
+    else:
+        return 'unknown'
+
+def shorten_url(request):
+     if request.method == 'POST':
+        original_url = request.POST.get('url')
+        
+        if not original_url:
+            messages.error(request, 'يرجى إدخال رابط صحيح')
+            return redirect('index')
+        
+        # Add http:// if not present
+        if not original_url.startswith(('http://', 'https://')):
+            original_url = 'http://' + original_url
+        
+        # Check if URL already exists
+        existing_url = URL.objects.filter(original_url=original_url).first()
+        if existing_url:
+            messages.success(request, f'الرابط المختصر: {existing_url.get_short_url()}')
+            return redirect('index')
+        
+        # Create new shortened URL
+        url_obj = URL.objects.create(original_url=original_url)
+        messages.success(request, f'تم إنشاء الرابط المختصر: {url_obj.get_short_url()}')
+
+        return redirect('index')
+     
+def redirect_url(request, short_code):
+    """Redirect to original URL and increment click count"""
+    url_obj = get_object_or_404(URL, short_code=short_code)
+    url_obj.click_count += 1
+    url_obj.save()
+    return redirect(url_obj.original_url)
+
+def url_stats(request, short_code):
+    """Show statistics for a shortened URL"""
+    url_obj = get_object_or_404(URL, short_code=short_code)
+    context = {
+        'url': url_obj
+    }
+    return render(request, 'shortener/stats.html', context)
+
+def Comming_Soon_Page(request):
+    return render (request, 'shortener/Comming_Soon_Page.html')
